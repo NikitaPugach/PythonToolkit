@@ -3,14 +3,24 @@ class Grammar(object):
         self.E = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '(', ')']
         self.N = ["FORMULA", "SIGN", "NUMBER", "DIGIT"]
         self.S = self.N[0]
-        self.rules = {self.N[2]: [self.N[1]], self.N[1]: self.E[0], self.S: [[self.S, self.N[1], self.S]]}
+        self.rules = {self.S: [[self.S, self.N[1], self.S], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0]}
+
+    def show(self):
+        print("Non-terminals: ", end="")
+        print(self.N)
+        print("Terminals", end="")
+        print(self.E)
+        print("Start Symbol:", end="")
+        print(self.S)
+        print("Rules", end="")
+        print(self.rules)
 
 
 class ToolKit(object):
-    def __init__(self):
-        self.grammar = Grammar()
+    def __init__(self, grammar):
+        self.grammar = grammar
 
-    def remove_unproductive_non_terminal(self):
+    def find_unproductive_non_terminal(self):
         alive = []
         # Нахождение первого элемента, который войдет в alive
         for rules_for_symbols in self.grammar.rules:
@@ -81,7 +91,102 @@ class ToolKit(object):
 
         return alive
 
+    def find_unattainable_non_terminal(self):
+        reachable = [self.grammar.S]
 
-toolkit = ToolKit()
+        expansion = True
+        while expansion:
+            reachable_size = len(reachable)
 
-print(toolkit.remove_unproductive_non_terminal())
+            for rules_for_symbols in self.grammar.rules:
+                if rules_for_symbols in reachable:
+                    right_part = self.grammar.rules[rules_for_symbols]
+                    if isinstance(right_part, list):
+                        for symbol in right_part:
+                            if isinstance(symbol, list):
+                                for s in symbol:
+                                    if s in self.grammar.N:
+                                        if not s in reachable:
+                                            reachable.append(s)
+                            else:
+                                if symbol in self.grammar.N:
+                                    if not symbol in reachable:
+                                        reachable.append(symbol)
+                    else:
+                        if right_part in self.grammar.N:
+                            if not right_part in reachable:
+                                reachable.append(right_part)
+
+            if len(reachable) == reachable_size:
+                expansion = False
+
+        return reachable
+
+    def remove_all_rules_with_unproductive_non_terminal(self):
+        alive = self.find_unproductive_non_terminal()
+
+        to_delete = list(set(self.grammar.rules.keys()) - set(alive))
+
+        # Удаляем все правила, в которых в левой части стоят недосягаемые нетерминалы
+        [self.grammar.rules.pop(key) for key in to_delete]
+
+        self.grammar.N = alive
+
+        for rules_for_symbols in self.grammar.rules:
+            right_part = self.grammar.rules[rules_for_symbols]
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        for s in symbol:
+                            if not s in self.grammar.N:
+                                if not s in self.grammar.E:
+                                    self.grammar.rules.pop(s)
+                    else:
+                        if not symbol in self.grammar.N:
+                            if not symbol in self.grammar.E:
+                                self.grammar.rules.pop(symbol)
+            else:
+                if not right_part in self.grammar.N:
+                    if not right_part in self.grammar.E:
+                        self.grammar.rules.pop(right_part)
+
+    def remove_all_rules_with_unattainable_non_terminal(self):
+        reachable = self.find_unattainable_non_terminal()
+
+        to_delete = list(set(self.grammar.rules.keys()) - set(reachable))
+
+        # Удаляем все правила, в которых в левой части стоят недосягаемые нетерминалы
+        [self.grammar.rules.pop(key) for key in to_delete]
+
+        self.grammar.N = reachable
+
+        for rules_for_symbols in self.grammar.rules:
+            right_part = self.grammar.rules[rules_for_symbols]
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        for s in symbol:
+                            if not s in self.grammar.N:
+                                if not s in self.grammar.E:
+                                    self.grammar.rules.pop(s)
+                    else:
+                        if not symbol in self.grammar.N:
+                            if not symbol in self.grammar.E:
+                                self.grammar.rules.pop(symbol)
+            else:
+                if not right_part in self.grammar.N:
+                    if not right_part in self.grammar.E:
+                        self.grammar.rules.pop(right_part)
+
+    def remove_excess_non_terminals(self):
+        self.remove_all_rules_with_unattainable_non_terminal()
+        self.remove_all_rules_with_unproductive_non_terminal()
+
+
+toolkit = ToolKit(Grammar())
+
+toolkit.remove_excess_non_terminals()
+
+print(toolkit.grammar.show())

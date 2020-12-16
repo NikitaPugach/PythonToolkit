@@ -3,7 +3,8 @@ class Grammar(object):
         self.E = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '(', ')']
         self.N = ["FORMULA", "SIGN", "NUMBER", "DIGIT"]
         self.S = self.N[0]
-        self.rules = {self.S: [[self.S, self.N[1], self.S], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0], self.N[3]: None}
+        self.rules = {self.S: [[self.S, self.N[1], self.S], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0],
+                      self.N[3]: None}
 
     def show(self):
         print("Non-terminals: ", end="")
@@ -38,7 +39,7 @@ class ToolKit(object):
                             alive.append(rules_for_symbols)
                             break
                     else:
-                        is_terminal = symbol in self.grammar.E    # Проверка все ли символы в правой части терминалы
+                        is_terminal = symbol in self.grammar.E  # Проверка все ли символы в правой части терминалы
                         if not is_terminal:
                             break
                 if is_terminal:  # если да, то добавляем левую часть в alive
@@ -73,7 +74,7 @@ class ToolKit(object):
                                     alive.append(rules_for_symbols)
                         else:
                             is_terminal_or_from_alive = symbol in self.grammar.E or symbol in alive  # Проверка все ли
-                            if not is_terminal_or_from_alive:          # символы в правой части терминалы либо из alive
+                            if not is_terminal_or_from_alive:  # символы в правой части терминалы либо из alive
                                 break
 
                     if is_terminal_or_from_alive:  # если да, то добавляем левую часть в alive
@@ -86,7 +87,7 @@ class ToolKit(object):
                         if not rules_for_symbols in alive:
                             alive.append(rules_for_symbols)
 
-            if alive_size == len(alive):   # Проверка расширилось ли alive
+            if alive_size == len(alive):  # Проверка расширилось ли alive
                 expansion = False
 
         return alive
@@ -191,24 +192,43 @@ class ToolKit(object):
             if self.grammar.rules[rules_for_symbol] is None:
                 vanishing.append(rules_for_symbol)
 
-        for rules_for_symbol in self.grammar.rules:
-            right_part = self.grammar.rules[rules_for_symbol]
+        expansion = True
 
-            if isinstance(right_part, list):
-                for symbol in right_part:
-                    if isinstance(symbol, list):
-                        for s in symbol:
-                            if s in vanishing:
-                                if not rules_for_symbol in vanishing:
-                                    vanishing.append(rules_for_symbol)
-                    else:
-                        if symbol in vanishing:
-                            if not rules_for_symbol in vanishing:
-                                vanishing.append(rules_for_symbol)
-            else:
-                if right_part in vanishing:
-                    if not rules_for_symbol in vanishing:
-                        vanishing.append(rules_for_symbol)
+        while expansion:
+            vanishing_size = len(vanishing)
+
+            for rules_for_symbol in self.grammar.rules:
+                right_part = self.grammar.rules[rules_for_symbol]
+
+                is_vanishing = False
+                if isinstance(right_part, list):
+                    for symbol in right_part:
+                        if isinstance(symbol, list):
+                            for s in symbol:
+                                if s in vanishing:
+                                    is_vanishing = True
+                                else:
+                                    is_vanishing = False
+                                    break
+                        else:
+                            if symbol in vanishing:
+                                is_vanishing = True
+                            else:
+                                is_vanishing = False
+                                break
+                    if is_vanishing is True:
+                        if not rules_for_symbol in vanishing:
+                            vanishing.append(rules_for_symbol)
+                else:
+                    if right_part in vanishing:
+                        if not rules_for_symbol in vanishing:
+                            vanishing.append(rules_for_symbol)
+
+            if vanishing_size == len(vanishing):
+                expansion = False
+
+        return vanishing
+
 
 # Project in development
 

@@ -1,10 +1,10 @@
 class Grammar(object):
     def __init__(self):
         self.E = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '(', ')']
-        self.N = ["FORMULA", "SIGN", "NUMBER", "DIGIT"]
+        self.N = ["FORMULA", "SIGN", "NUMBER", "DIGIT", "ALT", "DELETE"]
         self.S = self.N[0]
-        self.rules = {self.S: [[self.S, self.N[1], self.S], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0],
-                      self.N[3]: None}
+        self.rules = {self.S: [[self.S, self.N[1], self.S, self.N[4]], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0],
+                      self.N[4]: None, self.N[5]: self.N[4], self.N[3]: [self.N[4], self.N[5]]}
 
     def show(self):
         print("Non-terminals: ", end="")
@@ -15,6 +15,13 @@ class Grammar(object):
         print(self.S)
         print("Rules", end="")
         print(self.rules)
+
+
+def find_index(elem, array):
+    for i in range(len(array)):
+        if array[i] == elem:
+            return i
+    return -1
 
 
 class ToolKit(object):
@@ -229,11 +236,104 @@ class ToolKit(object):
 
         return vanishing
 
+    def remove_all_rules_with_vanishing_symbols(self):
+        self.grammar.N = list(set(self.grammar.N) - set(self.find_vanishing_symbols()))
+
+        [self.grammar.rules.pop(key) for key in self.find_vanishing_symbols()]
+
+        change = True
+
+        while change:
+            change = False
+            for rules_for_symbols in self.grammar.rules:
+                right_part = self.grammar.rules[rules_for_symbols]
+
+                if isinstance(right_part, list):
+                    for symbol in right_part:
+                        if isinstance(symbol, list):
+                            for s in symbol:
+                                if not s in self.grammar.N:
+                                    if not s in self.grammar.E:
+                                        change = True
+                                        right_part.remove(symbol)
+                        else:
+                            if not symbol in self.grammar.N:
+                                if not symbol in self.grammar.E:
+                                    change = True
+                                    self.grammar.rules.pop(symbol)
+                else:
+                    if not right_part in self.grammar.N:
+                        if not right_part in self.grammar.E:
+                            change = True
+                            self.grammar.rules.pop(right_part)
+
+    def create_graph(self):
+        self.remove_all_rules_with_vanishing_symbols()
+
+        array = [0] * len(self.grammar.N)
+        for row in range(len(self.grammar.N)):
+            array[row] = [0] * len(self.grammar.N)
+
+        for rules_for_symbol in self.grammar.rules:
+            right_part = self.grammar.rules[rules_for_symbol]
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        for s in symbol:
+                            if s in self.grammar.N:
+                                row = find_index(rules_for_symbol, self.grammar.N)
+                                column = find_index(s, self.grammar.N)
+                                array[row][column] = 1
+                    else:
+                        if symbol in self.grammar.N:
+                            row = find_index(rules_for_symbol, self.grammar.N)
+                            column = find_index(symbol, self.grammar.N)
+                            array[row][column] = 1
+                            print(self.grammar.N[row], end=" -> ")
+                            print(self.grammar.N[column])
+
+            else:
+                if right_part in self.grammar.N:
+                    row = find_index(rules_for_symbol, self.grammar.N)
+                    column = find_index(right_part, self.grammar.N)
+                    array[row][column] = 1
+
+        return array
+
+    def left_recursion_diagnosing(self):
+        left_recursion_finder = LeftRecursionFinder(self)
+        return left_recursion_finder.left_recursion_diagnosing()
+
+
+class LeftRecursionFinder(object):
+    def __init__(self, toolkit):
+        self.toolkit = toolkit
+        self.graph = toolkit.create_graph()
+        self.current_stack = []
+        self.recursion_elements = []
+
+    def left_recursion_diagnosing(self):
+        for i in range(self.graph):
+            for j in range(self.graph[i]):
+                if self.graph[i][j] is 1:
+                    self.current_stack.append(self.toolkit.grammar.N[i])
+                    self.recursion(j)
+                if len(self.current_stack) > len(set(self.current_stack)):
+                    self.recursion_elements.append(self.current_stack[0])
+        return self.recursion_elements
+
+    def recursion(self, elem):
+        array = self.graph[elem]
+
+        for i in range(len(array)):
+            if array[i] is 1:
+                self.current_stack.append(self.toolkit.grammar.N[elem])
+                self.recursion(i)
+
 
 # Project in development
 
-toolkit = ToolKit(Grammar())
+toolkit1 = ToolKit(Grammar())
 
-toolkit.remove_excess_non_terminals()
-
-print(toolkit.grammar.show())
+print(toolkit1.left_recursion_diagnosing())

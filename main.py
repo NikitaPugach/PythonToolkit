@@ -3,7 +3,7 @@ class Grammar(object):
         self.E = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '-', '*', '/', '(', ')']
         self.N = ["FORMULA", "SIGN", "NUMBER", "DIGIT"]
         self.S = self.N[0]
-        self.rules = {self.S: [[self.S, self.N[1], self.S], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0]}
+        self.rules = {self.S: [[self.S, self.N[1], self.S], self.E[7]], self.N[2]: [self.N[1]], self.N[1]: self.E[0], self.N[3]: None}
 
     def show(self):
         print("Non-terminals: ", end="")
@@ -183,6 +183,33 @@ class ToolKit(object):
     def remove_excess_non_terminals(self):
         self.remove_all_rules_with_unattainable_non_terminal()
         self.remove_all_rules_with_unproductive_non_terminal()
+
+    def find_vanishing_symbols(self):
+        vanishing = []
+
+        for rules_for_symbol in self.grammar.rules:
+            if self.grammar.rules[rules_for_symbol] is None:
+                vanishing.append(rules_for_symbol)
+
+        for rules_for_symbol in self.grammar.rules:
+            right_part = self.grammar.rules[rules_for_symbol]
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        for s in symbol:
+                            if s in vanishing:
+                                if not rules_for_symbol in vanishing:
+                                    vanishing.append(rules_for_symbol)
+                    else:
+                        if symbol in vanishing:
+                            if not rules_for_symbol in vanishing:
+                                vanishing.append(rules_for_symbol)
+            else:
+                if right_part in vanishing:
+                    if not rules_for_symbol in vanishing:
+                        vanishing.append(rules_for_symbol)
+
 
 
 toolkit = ToolKit(Grammar())

@@ -210,7 +210,7 @@ class ToolKit(object):
                     if not rules_for_symbol in vanishing:
                         vanishing.append(rules_for_symbol)
 
-
+# Project in development
 
 toolkit = ToolKit(Grammar())
 

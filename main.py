@@ -305,6 +305,74 @@ class ToolKit(object):
         left_recursion_finder = LeftRecursionFinder(self)
         return left_recursion_finder.left_recursion_diagnosing()
 
+    def getting_greybach_normal_form(self):
+        V = self.find_vanishing_symbols()
+
+        rules = self.grammar.rules
+
+        # Первым шагом удаляем все правила вида: А -> є
+        for rules_for_symbols in rules:
+            right_part = rules[rules_for_symbols]
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        for s in symbol:
+                            if s is None:
+                                symbol.pop(symbol)
+                    else:
+                        if symbol is None:
+                            right_part.pop(symbol)
+            else:
+                if right_part is None:
+                    rules.pop(right_part)
+
+
+        # Далее удалим все правила вида А -> а1V1 ... akVka(k+1)
+        # И вставим вместо них новые
+        deleted_rules = {}
+
+        for rules_for_symbols in rules:
+            right_part = rules[rules_for_symbols]
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        has_vanishing = False
+                        for s in symbol:
+                            if s in V:
+                                has_vanishing = True
+                        if has_vanishing:
+                            right_part.pop(symbol)
+                            deleted_rules[rules_for_symbols] = symbol
+
+                            new_rules = self.create_new_rules_for_graibach(rules_for_symbols, symbol, V)
+                            for r in new_rules:
+                                right_part.append(r)
+                    else:
+                        if symbol in V:
+                            right_part.pop(symbol)
+                            deleted_rules[rules_for_symbols] = symbol
+            else:
+                if right_part in V:
+                    rules.pop(right_part)
+                    deleted_rules[rules_for_symbols] = right_part
+
+
+    def create_new_rules_for_graibach(self, key, value, V):
+        new_value_list = []
+        i = 0
+        # Далее создадим правила на базе удаленных:
+        for symbol in value:
+            if symbol in V:
+                new_value = value
+                new_value_list.append(new_value.copy())
+                new_value[i] = None
+                new_value_list.append(new_value.copy())
+            i = i + 1
+        return new_value_list
+
+
 
 class LeftRecursionFinder(object):
     def __init__(self, toolkit):

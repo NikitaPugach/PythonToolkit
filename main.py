@@ -319,7 +319,7 @@ class ToolKit(object):
                     if isinstance(symbol, list):
                         for s in symbol:
                             if s is None:
-                                symbol.pop(symbol)
+                                symbol.pop(s)
                     else:
                         if symbol is None:
                             right_part.pop(symbol)
@@ -436,6 +436,43 @@ class ToolKit(object):
                         rule1 = alfa.append(new_symbol)
                         rules_list = [rule1, alfa]
                         self.grammar.rules[new_symbol] = rules_list  # Добавили новые правила
+
+    def left_factorization_of_grammar(self):
+        for rule_for_symbol in self.grammar.rules:
+            right_part = self.grammar.rules[rule_for_symbol]
+            numbers_of_occurrences = {}
+            to_factorization = []
+            for n in self.grammar.N:
+                numbers_of_occurrences[n] = 0
+
+            if isinstance(right_part, list):
+                for symbol in right_part:
+                    if isinstance(symbol, list):
+                        if symbol[0] in self.grammar.N:
+                            numbers_of_occurrences[symbol[0]] = numbers_of_occurrences[symbol[0]] + 1
+
+            for num in numbers_of_occurrences:
+                val = numbers_of_occurrences[num]
+                if val > 2:
+                    to_factorization.append(num)
+
+            if len(to_factorization) > 0:
+                new_rules = {}
+                for r in to_factorization:
+                    new_symbol = r + "'"
+                    new_rules[new_symbol] = []
+
+                if isinstance(right_part, list):
+                    for symbol in right_part:
+                        if isinstance(symbol, list):
+                            if symbol[0] in to_factorization:
+                                new_rules[symbol[0] + "'"].append(symbol[1:])
+                                right_part.remove(symbol)
+                                right_part.append(symbol[0] + symbol[0] + "'")
+
+                for rule in new_rules:
+                    self.grammar.rules[rule] = new_rules[rule]
+
 
 
 

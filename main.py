@@ -327,6 +327,8 @@ class ToolKit(object):
                 if right_part is None:
                     rules.pop(right_part)
 
+        self.grammar.rules = rules
+
 
         # Далее удалим все правила вида А -> а1V1 ... akVka(k+1)
         # И вставим вместо них новые
@@ -358,7 +360,6 @@ class ToolKit(object):
                     rules.pop(right_part)
                     deleted_rules[rules_for_symbols] = right_part
 
-
     def create_new_rules_for_graibach(self, key, value, V):
         new_value_list = []
         i = 0
@@ -371,6 +372,70 @@ class ToolKit(object):
                 new_value_list.append(new_value.copy())
             i = i + 1
         return new_value_list
+
+    def eliminate_left_recursion(self):
+        # Для начала избавимся от прямой левой рекурсии
+        for rules_for_symbol in self.grammar.rules:
+            right_part = self.grammar.rules[rules_for_symbol]
+            self.eliminate_direct_left_recursion(right_part, rules_for_symbol)
+
+        for i in range(self.grammar.N):
+            for j in range(i):
+                i_right_part = self.grammar.rules[self.grammar.N[i]]
+                j_right_part = self.grammar.rules[self.grammar.N[j]]
+
+                if isinstance(i_right_part, list):
+                    for symbol in i_right_part:
+                        if isinstance(symbol):
+                            for s in symbol:
+                                if symbol[0] is self.grammar.N[j]:
+                                    alfa = symbol[1:]
+                                    new_rules = []
+                                    if isinstance(j_right_part, list):
+                                        for j_symbol in j_right_part:
+                                            if isinstance(j_symbol, list):
+                                                new_rules.append(j_symbol + alfa)
+                                            else:
+                                                new_rules.append(list(j_symbol) + alfa)
+                                    else:
+                                        new_rules.append(j_right_part + alfa)
+                                symbol = new_rules
+
+                        else:
+                            if i_right_part[0] is self.grammar.N[j]:
+                                alfa = i_right_part[1:]
+                                new_rules = []
+                                if isinstance(j_right_part, list):
+                                    for j_symbol in j_right_part:
+                                        if isinstance(j_symbol, list):
+                                            new_rules.append(j_symbol + alfa)
+                                        else:
+                                            new_rules.append(list(j_symbol) + alfa)
+                                else:
+                                    new_rules.append(j_right_part + alfa)
+                                i_right_part = new_rules
+            self.eliminate_direct_left_recursion(self.grammar.rules[self.grammar.N[i]], self.grammar.N[i])
+
+    def eliminate_direct_left_recursion(self, right_part, rules_for_symbol):
+        if isinstance(right_part, list):
+            for symbol in right_part:
+                if isinstance(symbol, list):
+                    for s in symbol:
+                        if symbol[0] is rules_for_symbol:
+                            new_symbol = symbol[0] + "'"
+                            self.grammar.N.append(new_symbol)  # Добавили элемент А'
+                            alfa = symbol[1:]
+                            rule1 = alfa.append(new_symbol)
+                            rules_list = [rule1, alfa]
+                            self.grammar.rules[new_symbol] = rules_list  # Добавили новые правила
+                else:
+                    if right_part[0] is rules_for_symbol:
+                        new_symbol = right_part[0] + "'"
+                        self.grammar.N.append(new_symbol)  # Добавили элемент А'
+                        alfa = right_part[1:]
+                        rule1 = alfa.append(new_symbol)
+                        rules_list = [rule1, alfa]
+                        self.grammar.rules[new_symbol] = rules_list  # Добавили новые правила
 
 
 
